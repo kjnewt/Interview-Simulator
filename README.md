@@ -27,7 +27,7 @@ The simulator has no database, analytics, form submission, or external data conn
 - Audio disappears when the page closes unless the learner downloads it.
 - Clearing browser storage or selecting **Start over** removes saved typed practice.
 
-The Evidence Challenge uses transparent pattern checks in the browser. It identifies observable evidence signals but does not verify whether a story is true or replace live interviewer feedback.
+The Evidence Challenge uses transparent pattern checks in the browser. Scoring rewards sufficient evidence across the complete interview rather than requiring every evidence element in every answer. It recognizes a broad range of natural action, judgment, result, and reflection language, but it does not verify whether a story is true or replace live interviewer feedback.
 
 The GitHub Pages website itself should be treated as public unless your organization has configured private GitHub Pages access through GitHub Enterprise Cloud.
 

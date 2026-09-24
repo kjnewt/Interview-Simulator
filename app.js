@@ -10,9 +10,9 @@
   };
 
   const modeInfo = {
-    guided: { label: "Guided practice", count: 3, prep: 0, answer: 0, coach: true, actionRequired: 2, resultRequired: 2, minWords: 55, maxWords: 325 },
-    panel: { label: "Mock panel", count: 6, prep: 30, answer: 120, coach: false, actionRequired: 4, resultRequired: 4, minWords: 70, maxWords: 300 },
-    pressure: { label: "Pressure round", count: 5, prep: 15, answer: 90, coach: false, actionRequired: 4, resultRequired: 4, minWords: 55, maxWords: 225 }
+    guided: { label: "Guided practice", count: 3, prep: 0, answer: 0, coach: true, actionRequired: 2, resultRequired: 2, minWords: 40, maxWords: 350, evidenceTargets: [2,2,2,2,1,2] },
+    panel: { label: "Mock panel", count: 6, prep: 30, answer: 120, coach: false, actionRequired: 4, resultRequired: 3, minWords: 45, maxWords: 320, evidenceTargets: [4,4,3,3,2,4] },
+    pressure: { label: "Pressure round", count: 5, prep: 15, answer: 90, coach: false, actionRequired: 4, resultRequired: 3, minWords: 40, maxWords: 260, evidenceTargets: [4,4,3,3,2,4] }
   };
 
   const questions = [
@@ -125,11 +125,11 @@
   }
 
   const evidencePatterns = {
-    context: /\b(?:when|during|situation|challenge|goal|problem|needed|responsible|quarter|customer|prospect|account|team)\b/i,
-    action: /\bI\s+(?:analyzed|asked|built|changed|chose|communicated|created|decided|developed|documented|escalated|identified|implemented|initiated|introduced|led|mapped|organized|partnered|planned|prioritized|proposed|recommended|reviewed|scheduled|shared|simplified|tested|tracked|validated|worked)\b/i,
-    judgment: /\b(?:customer|prospect|stakeholder|business|impact|priority|prioritized|qualif(?:y|ied|ication)|discovery|value|risk|decision|opportunity|trade-?off|resource|evidence|revenue|cost|timeline|outcome)\b/i,
-    result: /(?:\b\d+(?:\.\d+)?%?\b|\b(?:increased|decreased|improved|reduced|saved|generated|closed|advanced|scheduled|secured|converted|achieved|exceeded|met|resulted|outcome|grew|changed|progressed)\b)/i,
-    learning: /\b(?:learned|realized|would|next time|going forward|in the future|now I|as an AE|carry forward|apply|repeat|differently)\b/i
+    context: /\b(?:when|during|at the time|in my role|last quarter|one time|recently|situation|challenge|goal|problem|needed|responsible|quarter|customer|prospect|account|team|project|conversation)\b/i,
+    action: /(?:\bI\s+(?:(?:personally|then|also|first|independently)\s+)?(?:addressed|adjusted|aligned|analyzed|asked|assessed|built|challenged|changed|chose|clarified|coached|collaborated|communicated|confirmed|connected|coordinated|created|decided|delivered|developed|documented|escalated|evaluated|explained|facilitated|followed|handled|helped|identified|implemented|influenced|initiated|introduced|led|listened|managed|mapped|negotiated|organized|owned|partnered|planned|prepared|presented|prioritized|proposed|recommended|researched|resolved|responded|reviewed|scheduled|set|shared|simplified|solved|supported|tailored|tested|took|tracked|uncovered|used|validated|worked)\b|\bmy\s+(?:role|responsibility|contribution|decision|approach|recommendation)\b)/i,
+    judgment: /\b(?:customer|prospect|stakeholder|decision[- ]?maker|business|impact|priority|prioritized|qualif(?:y|ied|ication)|discovery|value|risk|decision|opportunity|trade-?off|resource|evidence|revenue|cost|timeline|deadline|outcome|goal|data|signal|insight|need|concern|objection|authority)\b/i,
+    result: /(?:\b\d+(?:\.\d+)?%?\b|\b(?:increased|decreased|improved|reduced|saved|generated|closed|advanced|scheduled|secured|converted|achieved|exceeded|met|resulted|outcome|grew|changed|progressed|completed|adopted|accepted|approved|agreed|earned|restored|prevented|avoided|maintained|shortened|accelerated|moved forward|gained agreement|built trust)\b)/i,
+    learning: /\b(?:learned|realized|this taught me|would|next time|going forward|in the future|now I|I now|since then|from that point|as an AE|carry forward|apply|improve|adapt|repeat|differently)\b/i
   };
 
   function analyzeResponse(value, mode = "panel") {
@@ -140,7 +140,7 @@
     const result = evidencePatterns.result.test(text);
     return {
       words,
-      structured: words >= 45 && evidencePatterns.context.test(text) && action,
+      structured: words >= 35 && action && (evidencePatterns.context.test(text) || result),
       action,
       judgment: evidencePatterns.judgment.test(text),
       result,
@@ -156,17 +156,17 @@
       ...analyzeResponse(currentState.responses?.[id]?.text, currentState.mode)
     }));
     const keys = ["structured", "action", "judgment", "result", "learning", "delivery"];
-    const total = ids.length || 1;
+    const settings = modeInfo[currentState.mode] || modeInfo.panel;
     const criteria = rubric.map((item, index) => {
       const count = details.filter((detail) => detail[keys[index]]).length;
-      const points = Math.round((count / total) * item[1]);
-      return { name: item[0], weight: item[1], description: item[2], key: keys[index], count, total: ids.length, points };
+      const target = settings.evidenceTargets[index];
+      const points = Math.round(Math.min(count / target, 1) * item[1]);
+      return { name: item[0], weight: item[1], description: item[2], key: keys[index], count, target, total: ids.length, points };
     });
     const score = criteria.reduce((sum, item) => sum + item.points, 0);
     const actionCount = details.filter((detail) => detail.action).length;
     const resultCount = details.filter((detail) => detail.result).length;
     const typedCount = details.filter((detail) => detail.words >= 12).length;
-    const settings = modeInfo[currentState.mode] || modeInfo.panel;
     return {
       details,
       criteria,
@@ -581,12 +581,12 @@
   function renderRubric(analysis, revealed) {
     const list = document.getElementById("rubricList");
     list.innerHTML = analysis.criteria.map((item) => {
-      const percent = item.total ? Math.round((item.count / item.total) * 100) : 0;
+      const percent = item.target ? Math.min(100, Math.round((item.count / item.target) * 100)) : 0;
       return `
         <article class="rubric-item">
           <div class="rubric-head"><div><h3>${escapeHtml(item.name)}</h3><p>${escapeHtml(item.description)}</p></div><span class="weight-badge">${item.weight} pts</span></div>
           <div class="evidence-meter" aria-hidden="true"><i style="width:${revealed ? percent : 0}%"></i></div>
-          <div class="evidence-meta"><span>${revealed ? `${item.count} of ${item.total} responses showed this evidence` : "Waiting for evidence analysis"}</span><strong>${revealed ? `${item.points}/${item.weight} pts` : "—"}</strong></div>
+          <div class="evidence-meta"><span>${revealed ? `${item.count} responses showed this evidence; ${item.target} meets the target` : "Waiting for evidence analysis"}</span><strong>${revealed ? `${item.points}/${item.weight} pts` : "—"}</strong></div>
         </article>`;
     }).join("");
   }
@@ -598,7 +598,7 @@
     if (!detail.judgment) missing.push("business or customer judgment");
     if (!detail.learning) missing.push("learning or AE transfer");
     if (!detail.delivery) missing.push("focused interview length");
-    return missing.length ? `Strengthen: ${missing.join(", ")}.` : "Strong evidence pattern across action, judgment, result, and learning.";
+    return missing.length ? `Next improvement: add ${missing.slice(0,2).join(" and ")}.` : "Strong evidence pattern across action, judgment, result, and learning.";
   }
 
   function renderResponseEvidence(analysis, revealed) {
