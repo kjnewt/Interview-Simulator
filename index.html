@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#003054">
+  <meta name="description" content="Practice behavioral interview responses and evaluate the evidence of AE readiness.">
+  <title>AE Interview Lab</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="brand-lockup">
+      <span class="brand-mark" aria-hidden="true">AE</span>
+      <span><strong>AE Interview Lab</strong><small>SDR-to-AE Readiness Program</small></span>
+    </div>
+    <div class="header-meta">
+      <span class="local-badge"><i aria-hidden="true"></i> Responses stay local</span>
+      <button class="quiet-button" id="resetButton" type="button">Start over</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">Behavioral interview simulator</p>
+        <h1 id="page-title">Your experience is the evidence.</h1>
+        <p>Practice translating what you have done as an SDR into clear, credible proof that you are ready to perform as an Account Executive.</p>
+      </div>
+      <div class="hero-standard">
+        <span>Readiness standard</span>
+        <strong>80% + evidence gates</strong>
+        <small>Specific action and meaningful results are required.</small>
+      </div>
+    </section>
+
+    <nav class="progress-tabs" aria-label="Interview simulator sections" role="tablist">
+      <button class="progress-tab is-active" id="tab-setup" role="tab" aria-selected="true" aria-controls="panel-setup" data-tab="setup" type="button"><b>01</b><span>Choose your practice</span></button>
+      <button class="progress-tab" id="tab-interview" role="tab" aria-selected="false" aria-controls="panel-interview" data-tab="interview" type="button" disabled><b>02</b><span>Enter the interview</span></button>
+      <button class="progress-tab" id="tab-debrief" role="tab" aria-selected="false" aria-controls="panel-debrief" data-tab="debrief" type="button" disabled><b>03</b><span>Review the evidence</span></button>
+    </nav>
+
+    <section class="tab-panel is-active" id="panel-setup" role="tabpanel" aria-labelledby="tab-setup">
+      <div class="section-intro">
+        <div>
+          <p class="eyebrow">Set the challenge</p>
+          <h2>How do you want to practice?</h2>
+          <p>Choose the level of support you need today. You can type or record each response once the interview begins.</p>
+        </div>
+      </div>
+
+      <div class="mode-grid" id="modeGrid" role="radiogroup" aria-label="Interview mode">
+        <button class="mode-card is-selected" type="button" role="radio" aria-checked="true" data-mode="guided">
+          <span class="mode-icon" aria-hidden="true">01</span>
+          <span class="mode-step">Step 1</span>
+          <span class="mode-label">Start here</span>
+          <strong>Guided Practice</strong>
+          <small>3 questions · STAR+L coaching · Untimed</small>
+        </button>
+        <button class="mode-card" type="button" role="radio" aria-checked="false" data-mode="panel">
+          <span class="mode-icon" aria-hidden="true">02</span>
+          <span class="mode-step">Step 2</span>
+          <span class="mode-label">Next</span>
+          <strong>Mock Panel</strong>
+          <small>6 questions · 30-sec prep · 2-min response</small>
+        </button>
+        <button class="mode-card" type="button" role="radio" aria-checked="false" data-mode="pressure">
+          <span class="mode-icon" aria-hidden="true">03</span>
+          <span class="mode-step">Step 3</span>
+          <span class="mode-label">Final</span>
+          <strong>Pressure Round</strong>
+          <small>5 questions · 15-sec prep · 90-sec response</small>
+        </button>
+      </div>
+
+      <div class="setup-grid">
+        <div class="setup-card">
+          <label for="learnerName">Your name <span>optional</span></label>
+          <input id="learnerName" type="text" maxlength="60" autocomplete="name" placeholder="Enter your name">
+
+          <label for="focusSelect">Practice focus</label>
+          <select id="focusSelect">
+            <option value="all">Balanced AE readiness</option>
+            <option value="discovery">Discovery and customer judgment</option>
+            <option value="ownership">Ownership and initiative</option>
+            <option value="influence">Influence without authority</option>
+            <option value="resilience">Resilience and accountability</option>
+            <option value="collaboration">Cross-functional collaboration</option>
+            <option value="priorities">Prioritization and execution</option>
+            <option value="learning">Feedback and growth</option>
+          </select>
+
+          <div class="privacy-note">
+            <span aria-hidden="true">●</span>
+            <p><strong>Your practice stays with you.</strong> Typed responses are saved in this browser. Audio is recorded locally and is never uploaded.</p>
+          </div>
+
+          <button class="primary-button wide" id="startInterview" type="button">Enter the interview room <span aria-hidden="true">→</span></button>
+        </div>
+
+        <div class="panel-preview" aria-label="Your interview panel">
+          <p class="card-kicker">Your interview panel</p>
+          <div class="preview-person">
+            <span class="avatar avatar-leader" aria-hidden="true">SL</span>
+            <div><strong>Sales Leader</strong><small>Ownership, judgment, results</small></div>
+          </div>
+          <div class="preview-person">
+            <span class="avatar avatar-ae" aria-hidden="true">AE</span>
+            <div><strong>Account Executive</strong><small>Discovery, influence, execution</small></div>
+          </div>
+          <div class="preview-person">
+            <span class="avatar avatar-partner" aria-hidden="true">XP</span>
+            <div><strong>Cross-functional Partner</strong><small>Collaboration, trust, communication</small></div>
+          </div>
+          <blockquote>“We are not looking for perfect answers. We are looking for specific evidence of how you think, act, and learn.”</blockquote>
+        </div>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="panel-interview" role="tabpanel" aria-labelledby="tab-interview" hidden>
+      <div class="interview-toolbar">
+        <div>
+          <span id="candidateLabel">Candidate</span>
+          <strong id="modeLabel">Mock panel</strong>
+        </div>
+        <div class="question-progress">
+          <span id="questionProgress">Question 1 of 6</span>
+          <div class="progress-track" aria-hidden="true"><i id="questionProgressBar"></i></div>
+        </div>
+        <div class="interview-timer" id="timerCard">
+          <span id="timerPhase">Ready</span>
+          <strong id="timerDisplay" aria-live="polite">02:00</strong>
+          <button id="timerControl" type="button">Start prep</button>
+        </div>
+      </div>
+
+      <div class="interview-stage">
+        <article class="interviewer-card">
+          <div class="interviewer-identity">
+            <span class="avatar avatar-leader" id="panelAvatar" aria-hidden="true">SL</span>
+            <div><strong id="panelName">Sales Leader</strong><small id="panelFocus">Ownership, judgment, and results</small></div>
+          </div>
+          <span class="competency-chip" id="competencyChip">Ownership</span>
+          <p class="question-number" id="questionNumber">Question 01</p>
+          <h2 id="questionText" tabindex="-1">Tell me about a time you took ownership of a problem that was outside your formal responsibilities.</h2>
+
+          <button class="followup-button" id="followupButton" type="button">Hear a panel follow-up <span aria-hidden="true">＋</span></button>
+          <div class="followup-box" id="followupBox" hidden>
+            <span>Panel follow-up</span>
+            <p id="followupText"></p>
+          </div>
+        </article>
+
+        <article class="response-card">
+          <div class="response-heading">
+            <div><p class="card-kicker">Your response</p><h3>Make your evidence observable.</h3></div>
+            <div class="response-switch" role="tablist" aria-label="Response format">
+              <button class="is-active" id="typeResponseTab" role="tab" aria-selected="true" aria-controls="typedResponsePanel" type="button">Type</button>
+              <button id="audioResponseTab" role="tab" aria-selected="false" aria-controls="audioResponsePanel" type="button">Record audio</button>
+            </div>
+          </div>
+
+          <div id="typedResponsePanel" role="tabpanel" aria-labelledby="typeResponseTab">
+            <label class="sr-only" for="responseText">Your interview response</label>
+            <textarea id="responseText" rows="10" placeholder="Capture the answer you would give in the interview…"></textarea>
+            <div class="word-count"><span id="wordCount">0 words</span><span>A focused answer is usually 180–300 words.</span></div>
+          </div>
+
+          <div id="audioResponsePanel" role="tabpanel" aria-labelledby="audioResponseTab" hidden>
+            <div class="audio-recorder" id="audioRecorder">
+              <button class="record-button" id="recordButton" type="button"><i aria-hidden="true"></i><span>Start recording</span></button>
+              <div><strong id="recordingStatus">Ready to record</strong><small id="recordingTime">00:00</small></div>
+            </div>
+            <div class="audio-result" id="audioResult" hidden>
+              <audio id="audioPlayback" controls></audio>
+              <div>
+                <button class="secondary-button" id="retakeButton" type="button">Record again</button>
+                <a class="secondary-button" id="downloadAudio" download>Download audio</a>
+              </div>
+            </div>
+            <p class="audio-note">Your browser may ask for microphone access. The recording stays on this device and is lost when this page closes unless you download it.</p>
+          </div>
+
+          <details class="coach-drawer" id="coachDrawer">
+            <summary>STAR+L answer coach</summary>
+            <div class="star-grid">
+              <div><b>S</b><strong>Situation</strong><span>What was happening?</span></div>
+              <div><b>T</b><strong>Task</strong><span>What were you responsible for?</span></div>
+              <div><b>A</b><strong>Action</strong><span>What did you personally do?</span></div>
+              <div><b>R</b><strong>Result</strong><span>What changed? How do you know?</span></div>
+              <div><b>L</b><strong>Learning</strong><span>How will this shape you as an AE?</span></div>
+            </div>
+          </details>
+
+          <div class="response-actions">
+            <button class="secondary-button" id="previousQuestion" type="button">← Previous</button>
+            <button class="primary-button" id="saveNext" type="button">Save and continue <span aria-hidden="true">→</span></button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="panel-debrief" role="tabpanel" aria-labelledby="tab-debrief" hidden>
+      <div class="section-intro debrief-intro">
+        <div>
+          <p class="eyebrow">Readiness debrief</p>
+          <h2>What evidence would the panel remember?</h2>
+          <p>Rate what was observable across the full interview—not what you intended to demonstrate.</p>
+        </div>
+        <div class="session-summary">
+          <span><strong id="answeredCount">0</strong> responses</span>
+          <span><strong id="typedWordTotal">0</strong> typed words</span>
+          <span><strong id="audioCount">0</strong> recordings</span>
+        </div>
+      </div>
+
+      <div class="debrief-layout">
+        <div>
+          <div class="rubric-list" id="rubricList"></div>
+          <div class="evidence-gates">
+            <p class="card-kicker">Required evidence gates</p>
+            <label><input id="actionGate" type="checkbox"><span><strong>Personal action was clear.</strong> My answers explained what I personally did—not only what “we” accomplished.</span></label>
+            <label><input id="resultGate" type="checkbox"><span><strong>Meaningful results were present.</strong> At least four responses included a measurable or observable outcome.</span></label>
+          </div>
+        </div>
+
+        <aside class="result-card">
+          <div class="score-ring" id="scoreRing"><div><strong id="scoreValue">0</strong><span>/ 100</span></div></div>
+          <span class="status-chip status-incomplete" id="statusChip">Rubric incomplete</span>
+          <h3 id="statusTitle">Finish the evidence review.</h3>
+          <p id="statusMessage">Rate every competency and confirm both evidence gates.</p>
+
+          <div class="evaluator-card" id="evaluatorCard" aria-live="polite">
+            <span class="evaluator-avatar" aria-hidden="true">S</span>
+            <div>
+              <span>Sparky · Readiness Evaluator</span>
+              <p id="evaluatorMessage">Complete the evidence review and I’ll help you identify what the panel is likely to remember.</p>
+            </div>
+          </div>
+
+          <div class="gate-list">
+            <div><i id="scoreGateIcon" aria-hidden="true">○</i><span><strong>Score gate</strong><small id="scoreGateText">80 points required</small></span></div>
+            <div><i id="actionGateIcon" aria-hidden="true">○</i><span><strong>Action gate</strong><small>Specific personal actions</small></span></div>
+            <div><i id="resultGateIcon" aria-hidden="true">○</i><span><strong>Result gate</strong><small>Meaningful outcomes</small></span></div>
+          </div>
+
+          <label for="nextFocus">My next rehearsal focus</label>
+          <textarea id="nextFocus" rows="4" placeholder="Name the one behavior that would most improve your next interview."></textarea>
+
+          <button class="primary-button wide" id="copyDebrief" type="button">Copy my debrief</button>
+          <button class="secondary-button wide" id="printDebrief" type="button">Print / save PDF</button>
+          <button class="text-button" id="practiceAgain" type="button">Practice another interview</button>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
