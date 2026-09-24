@@ -9,11 +9,14 @@ An interactive behavioral interview simulator created for the SDR-to-AE Readines
 - Respond by typing or recording audio locally
 - Use STAR+L coaching and realistic interviewer follow-up questions
 - Practice against preparation and response timers
-- Complete a weighted 100-point readiness rubric
-- Review required personal-action and meaningful-results evidence gates
-- Receive supportive feedback from Sparky, the Readiness Evaluator
-- Celebrate a passing result with accessible, reduced-motion-aware confetti
-- Copy or print a personal readiness debrief
+- Predict performance before seeing the independently calculated evidence score
+- Receive a weighted 100-point Evidence Strength Score from transparent, browser-based checks
+- Review automatic personal-action and meaningful-results evidence gates
+- Compare learner prediction with the evidence score during Mock Panel and Pressure Round
+- Add optional manager, mentor, or peer validation during Pressure Round
+- Receive answer-level coaching from Sparky, the Evidence Coach
+- Celebrate strong demonstrated evidence with accessible, reduced-motion-aware confetti
+- Copy or print a personal Evidence Challenge debrief
 
 ## Privacy and learner data
 
@@ -23,6 +26,8 @@ The simulator has no database, analytics, form submission, or external data conn
 - Audio is recorded in the browser and is never uploaded by this site.
 - Audio disappears when the page closes unless the learner downloads it.
 - Clearing browser storage or selecting **Start over** removes saved typed practice.
+
+The Evidence Challenge uses transparent pattern checks in the browser. It identifies observable evidence signals but does not verify whether a story is true or replace live interviewer feedback.
 
 The GitHub Pages website itself should be treated as public unless your organization has configured private GitHub Pages access through GitHub Enterprise Cloud.
 

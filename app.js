@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const STORAGE_KEY = "ae-interview-lab-v1";
+  const STORAGE_KEY = "ae-interview-lab-v2";
 
   const panelInfo = {
     leader: { name: "Sales Leader", focus: "Ownership, judgment, and results", initials: "SL", avatar: "avatar-leader" },
@@ -10,9 +10,9 @@
   };
 
   const modeInfo = {
-    guided: { label: "Guided practice", count: 3, prep: 0, answer: 0, coach: true },
-    panel: { label: "Mock panel", count: 6, prep: 30, answer: 120, coach: false },
-    pressure: { label: "Pressure round", count: 5, prep: 15, answer: 90, coach: false }
+    guided: { label: "Guided practice", count: 3, prep: 0, answer: 0, coach: true, actionRequired: 2, resultRequired: 2, minWords: 55, maxWords: 325 },
+    panel: { label: "Mock panel", count: 6, prep: 30, answer: 120, coach: false, actionRequired: 4, resultRequired: 4, minWords: 70, maxWords: 300 },
+    pressure: { label: "Pressure round", count: 5, prep: 15, answer: 90, coach: false, actionRequired: 4, resultRequired: 4, minWords: 55, maxWords: 225 }
   };
 
   const questions = [
@@ -39,12 +39,12 @@
   ];
 
   const rubric = [
-    ["Relevant, well-structured responses", 15, "Selected examples that directly answered the question and used a clear STAR+L progression."],
+    ["Clear, well-structured examples", 15, "Used enough context and a specific personal action to make the example easy to follow."],
     ["Personal ownership and specific actions", 25, "Made individual decisions, behaviors, and contributions unmistakable instead of relying on “we.”"],
     ["AE-level judgment and behavior", 20, "Demonstrated customer judgment, prioritization, influence, and ownership expected of an AE."],
     ["Meaningful business or customer results", 20, "Connected actions to measurable or observable outcomes that mattered."],
     ["Reflection and learning", 10, "Explained what changed in future behavior and how the lesson will transfer to the AE role."],
-    ["Communication and presence", 10, "Answered concisely, used confident language, and stayed composed under follow-up pressure."]
+    ["Focused delivery", 10, "Kept each typed response within a focused range for the selected practice mode."]
   ];
 
   const defaultState = {
@@ -54,9 +54,11 @@
     questionIds: [],
     currentIndex: 0,
     responses: {},
-    ratings: {},
-    actionGate: false,
-    resultGate: false,
+    prediction: null,
+    analysisRevealed: false,
+    observerEnabled: false,
+    observerName: "",
+    observerRatings: {},
     nextFocus: ""
   };
 
@@ -122,22 +124,81 @@
     }, 0));
   }
 
-  function evaluateReadiness(currentState) {
-    const complete = rubric.every((_, index) => Number.isFinite(Number(currentState.ratings[index])));
-    const score = calculateScore(currentState.ratings);
+  const evidencePatterns = {
+    context: /\b(?:when|during|situation|challenge|goal|problem|needed|responsible|quarter|customer|prospect|account|team)\b/i,
+    action: /\bI\s+(?:analyzed|asked|built|changed|chose|communicated|created|decided|developed|documented|escalated|identified|implemented|initiated|introduced|led|mapped|organized|partnered|planned|prioritized|proposed|recommended|reviewed|scheduled|shared|simplified|tested|tracked|validated|worked)\b/i,
+    judgment: /\b(?:customer|prospect|stakeholder|business|impact|priority|prioritized|qualif(?:y|ied|ication)|discovery|value|risk|decision|opportunity|trade-?off|resource|evidence|revenue|cost|timeline|outcome)\b/i,
+    result: /(?:\b\d+(?:\.\d+)?%?\b|\b(?:increased|decreased|improved|reduced|saved|generated|closed|advanced|scheduled|secured|converted|achieved|exceeded|met|resulted|outcome|grew|changed|progressed)\b)/i,
+    learning: /\b(?:learned|realized|would|next time|going forward|in the future|now I|as an AE|carry forward|apply|repeat|differently)\b/i
+  };
+
+  function analyzeResponse(value, mode = "panel") {
+    const text = String(value || "").trim();
+    const words = countWords(text);
+    const settings = modeInfo[mode] || modeInfo.panel;
+    const action = evidencePatterns.action.test(text);
+    const result = evidencePatterns.result.test(text);
     return {
-      complete,
-      score,
-      scorePassed: complete && score >= 80,
-      ready: complete && score >= 80 && Boolean(currentState.actionGate) && Boolean(currentState.resultGate)
+      words,
+      structured: words >= 45 && evidencePatterns.context.test(text) && action,
+      action,
+      judgment: evidencePatterns.judgment.test(text),
+      result,
+      learning: evidencePatterns.learning.test(text),
+      delivery: words >= settings.minWords && words <= settings.maxWords
     };
   }
 
-  function rankedCompetencies(ratings, direction = "desc") {
-    return rubric
-      .map((item, index) => ({ name: item[0], rating: Number(ratings[index]) }))
-      .filter((item) => Number.isFinite(item.rating))
-      .sort((a, b) => direction === "desc" ? b.rating - a.rating : a.rating - b.rating);
+  function analyzeInterview(currentState) {
+    const ids = Array.isArray(currentState.questionIds) ? currentState.questionIds : [];
+    const details = ids.map((id) => ({
+      id,
+      ...analyzeResponse(currentState.responses?.[id]?.text, currentState.mode)
+    }));
+    const keys = ["structured", "action", "judgment", "result", "learning", "delivery"];
+    const total = ids.length || 1;
+    const criteria = rubric.map((item, index) => {
+      const count = details.filter((detail) => detail[keys[index]]).length;
+      const points = Math.round((count / total) * item[1]);
+      return { name: item[0], weight: item[1], description: item[2], key: keys[index], count, total: ids.length, points };
+    });
+    const score = criteria.reduce((sum, item) => sum + item.points, 0);
+    const actionCount = details.filter((detail) => detail.action).length;
+    const resultCount = details.filter((detail) => detail.result).length;
+    const typedCount = details.filter((detail) => detail.words >= 12).length;
+    const settings = modeInfo[currentState.mode] || modeInfo.panel;
+    return {
+      details,
+      criteria,
+      score,
+      typedCount,
+      total: ids.length,
+      actionCount,
+      resultCount,
+      actionRequired: settings.actionRequired,
+      resultRequired: settings.resultRequired,
+      actionGate: actionCount >= settings.actionRequired,
+      resultGate: resultCount >= settings.resultRequired
+    };
+  }
+
+  function evaluateReadiness(currentState) {
+    const analysis = analyzeInterview(currentState);
+    const complete = Boolean(currentState.analysisRevealed) && analysis.total > 0 && analysis.typedCount === analysis.total;
+    return {
+      ...analysis,
+      complete,
+      scorePassed: complete && analysis.score >= 80,
+      ready: complete && analysis.score >= 80 && analysis.actionGate && analysis.resultGate
+    };
+  }
+
+  function rankedCompetencies(criteria, direction = "desc") {
+    return criteria.slice().sort((a, b) => {
+      const left = a.weight ? a.points / a.weight : 0;
+      const right = b.weight ? b.points / b.weight : 0;
+      return direction === "desc" ? right - left : left - right;
+    });
   }
 
   function evaluatorFeedback(currentState) {
@@ -145,15 +206,15 @@
     if (!result.complete) {
       return "Complete the evidence review and I’ll help you identify what the panel is likely to remember.";
     }
-    const strongest = rankedCompetencies(currentState.ratings, "desc").slice(0, 2).map((item) => item.name).join(" and ");
-    const growth = rankedCompetencies(currentState.ratings, "asc")[0]?.name || "your evidence";
+    const strongest = rankedCompetencies(result.criteria, "desc").slice(0, 2).map((item) => item.name).join(" and ");
+    const growth = rankedCompetencies(result.criteria, "asc")[0]?.name || "your evidence";
     if (result.ready) {
-      return `You did it! Your strongest demonstrated skills were ${strongest}. You gave the panel credible evidence of AE readiness—carry that same clarity and confidence into the real interview.`;
+      return `Strong evidence demonstrated! Your clearest evidence was ${strongest}. Carry that same specificity and confidence into a live interview.`;
     }
     if (result.scorePassed) {
-      return "Your overall performance is strong. Make your personal actions and measurable results unmistakable so the panel never has to infer your contribution.";
+      return "Your overall evidence score is strong, but one required gate is still missing. Make your personal actions and measurable results unmistakable.";
     }
-    return `You have useful experience to work with. Your next opportunity is to strengthen ${growth} with one specific action, outcome, and lesson.`;
+    return `You have useful experience to work with. Strengthen ${growth} with one specific action, outcome, and lesson before your next round.`;
   }
 
   function launchConfetti() {
@@ -233,9 +294,11 @@
     state.focus = document.getElementById("focusSelect").value;
     state.currentIndex = 0;
     state.responses = {};
-    state.ratings = {};
-    state.actionGate = false;
-    state.resultGate = false;
+    state.prediction = null;
+    state.analysisRevealed = false;
+    state.observerEnabled = false;
+    state.observerName = "";
+    state.observerRatings = {};
     state.nextFocus = "";
     state.questionIds = selectQuestions(questions, modeInfo[state.mode].count, state.focus).map((item) => item.id);
     audioStore.forEach((item) => URL.revokeObjectURL(item.url));
@@ -287,7 +350,9 @@
     const question = currentQuestion();
     if (!question) return;
     const response = state.responses[question.id] || {};
-    response.text = document.getElementById("responseText").value;
+    const nextText = document.getElementById("responseText").value;
+    if (response.text !== nextText) state.analysisRevealed = false;
+    response.text = nextText;
     response.responseMode = document.getElementById("audioResponseTab").classList.contains("is-active") ? "audio" : "type";
     state.responses[question.id] = response;
     saveState();
@@ -513,58 +578,157 @@
     startRecording();
   }
 
-  function renderRubric() {
+  function renderRubric(analysis, revealed) {
     const list = document.getElementById("rubricList");
-    list.innerHTML = rubric.map((item, index) => `
-      <article class="rubric-item">
-        <div class="rubric-head"><div><h3>${escapeHtml(item[0])}</h3><p>${escapeHtml(item[2])}</p></div><span class="weight-badge">${item[1]} pts</span></div>
-        <div class="rating-row" role="group" aria-label="Rate ${escapeHtml(item[0])}">
-          ${[0,1,2,3,4].map((rating) => `<button class="rating-button ${Number(state.ratings[index]) === rating ? "is-selected" : ""}" type="button" data-rubric="${index}" data-rating="${rating}" aria-pressed="${Number(state.ratings[index]) === rating}">${rating} · ${["Not shown","Emerging","Capable","Strong","AE-ready"][rating]}</button>`).join("")}
+    list.innerHTML = analysis.criteria.map((item) => {
+      const percent = item.total ? Math.round((item.count / item.total) * 100) : 0;
+      return `
+        <article class="rubric-item">
+          <div class="rubric-head"><div><h3>${escapeHtml(item.name)}</h3><p>${escapeHtml(item.description)}</p></div><span class="weight-badge">${item.weight} pts</span></div>
+          <div class="evidence-meter" aria-hidden="true"><i style="width:${revealed ? percent : 0}%"></i></div>
+          <div class="evidence-meta"><span>${revealed ? `${item.count} of ${item.total} responses showed this evidence` : "Waiting for evidence analysis"}</span><strong>${revealed ? `${item.points}/${item.weight} pts` : "—"}</strong></div>
+        </article>`;
+    }).join("");
+  }
+
+  function responseCoaching(detail) {
+    const missing = [];
+    if (!detail.action) missing.push("specific personal action");
+    if (!detail.result) missing.push("measurable or observable result");
+    if (!detail.judgment) missing.push("business or customer judgment");
+    if (!detail.learning) missing.push("learning or AE transfer");
+    if (!detail.delivery) missing.push("focused interview length");
+    return missing.length ? `Strengthen: ${missing.join(", ")}.` : "Strong evidence pattern across action, judgment, result, and learning.";
+  }
+
+  function renderResponseEvidence(analysis, revealed) {
+    const list = document.getElementById("responseEvidenceList");
+    if (!revealed) {
+      list.innerHTML = '<p class="empty-evidence">Run the evidence check to see coaching for each response.</p>';
+      return;
+    }
+    list.innerHTML = analysis.details.map((detail, index) => {
+      const question = questions.find((item) => item.id === detail.id);
+      const chips = [
+        ["Action", detail.action],
+        ["Judgment", detail.judgment],
+        ["Result", detail.result],
+        ["Learning", detail.learning]
+      ].map(([label, met]) => `<span class="evidence-chip ${met ? "is-met" : "is-missing"}">${met ? "✓" : "○"} ${label}</span>`).join("");
+      return `<article class="response-evidence-item">
+        <div><span>Question ${String(index + 1).padStart(2,"0")} · ${escapeHtml(question?.competency || "Evidence")}</span><strong>${detail.words} typed words</strong></div>
+        <div class="evidence-chips">${chips}</div>
+        <p>${escapeHtml(responseCoaching(detail))}</p>
+      </article>`;
+    }).join("");
+  }
+
+  function observerIsComplete() {
+    return rubric.every((_, index) => Number.isFinite(Number(state.observerRatings[index])));
+  }
+
+  function renderObserverRubric() {
+    const container = document.getElementById("observerRubric");
+    container.innerHTML = rubric.map((item, index) => `
+      <div class="observer-rubric-item">
+        <span>${escapeHtml(item[0])}</span>
+        <div role="group" aria-label="Observer rating for ${escapeHtml(item[0])}">
+          ${[0,1,2,3,4].map((rating) => `<button class="${Number(state.observerRatings[index]) === rating ? "is-selected" : ""}" type="button" data-observer-rubric="${index}" data-observer-rating="${rating}" aria-pressed="${Number(state.observerRatings[index]) === rating}">${rating}</button>`).join("")}
         </div>
-      </article>`).join("");
-    list.querySelectorAll("[data-rubric]").forEach((button) => button.addEventListener("click", () => {
-      state.ratings[button.dataset.rubric] = Number(button.dataset.rating);
+      </div>`).join("");
+    container.querySelectorAll("[data-observer-rubric]").forEach((button) => button.addEventListener("click", () => {
+      state.observerRatings[button.dataset.observerRubric] = Number(button.dataset.observerRating);
       saveState();
       renderDebrief();
     }));
+    document.getElementById("observerScore").textContent = observerIsComplete() ? calculateScore(state.observerRatings) : "—";
+  }
+
+  function analyzeEvidence() {
+    const analysis = analyzeInterview(state);
+    if (analysis.typedCount !== analysis.total) {
+      showToast("Add at least 12 typed words for every answer so the evidence checker has something to review.");
+      return;
+    }
+    if (state.mode !== "guided" && (state.prediction == null || !Number.isFinite(Number(state.prediction)))) {
+      showToast("Enter your predicted score before revealing the evidence score.");
+      document.getElementById("predictionInput").focus();
+      return;
+    }
+    state.analysisRevealed = true;
+    saveState();
+    renderDebrief();
+    document.getElementById("statusTitle").focus({ preventScroll: true });
   }
 
   function renderDebrief() {
-    renderRubric();
+    const result = evaluateReadiness(state);
+    const revealed = result.complete;
     const answered = state.questionIds.filter((id) => responseHasEvidence(id)).length;
     const totalWords = Object.values(state.responses).reduce((total, response) => total + countWords(response.text), 0);
     document.getElementById("answeredCount").textContent = answered;
     document.getElementById("typedWordTotal").textContent = totalWords;
     document.getElementById("audioCount").textContent = audioStore.size;
-    document.getElementById("actionGate").checked = state.actionGate;
-    document.getElementById("resultGate").checked = state.resultGate;
     document.getElementById("nextFocus").value = state.nextFocus || "";
 
-    const result = evaluateReadiness(state);
-    document.getElementById("scoreValue").textContent = result.score;
-    document.getElementById("scoreRing").style.setProperty("--score-angle", `${result.score * 3.6}deg`);
+    const guided = state.mode === "guided";
+    document.getElementById("calibrationCard").hidden = guided;
+    document.getElementById("predictionInput").value = state.prediction == null ? "" : state.prediction;
+    document.getElementById("predictionInput").disabled = revealed;
+    document.getElementById("analyzeEvidence").textContent = revealed ? "Re-analyze my evidence" : "Analyze my evidence";
+    const observerCard = document.getElementById("observerCard");
+    observerCard.hidden = state.mode !== "pressure";
+    document.getElementById("observerEnabled").checked = Boolean(state.observerEnabled);
+    document.getElementById("observerFields").hidden = !state.observerEnabled;
+    document.getElementById("observerName").value = state.observerName || "";
+    renderObserverRubric();
+    renderRubric(result, revealed);
+    renderResponseEvidence(result, revealed);
+
+    document.getElementById("scoreValue").textContent = revealed ? result.score : "—";
+    document.getElementById("scoreRing").style.setProperty("--score-angle", `${revealed ? result.score * 3.6 : 0}deg`);
     const chip = document.getElementById("statusChip");
     chip.className = "status-chip";
-    if (!result.complete) {
+    if (!revealed) {
       chip.classList.add("status-incomplete");
-      chip.textContent = "Rubric incomplete";
-      document.getElementById("statusTitle").textContent = "Finish the evidence review.";
-      document.getElementById("statusMessage").textContent = "Rate every competency and confirm both evidence gates.";
+      chip.textContent = "Not analyzed";
+      document.getElementById("statusTitle").textContent = "Run your evidence check.";
+      document.getElementById("statusMessage").textContent = guided ? "Your typed answers will be checked for observable evidence." : "Predict your performance before revealing the evidence score.";
     } else if (result.ready) {
       chip.classList.add("status-ready");
-      chip.textContent = "Interview ready";
-      document.getElementById("statusTitle").textContent = "Your readiness is credible.";
-      document.getElementById("statusMessage").textContent = "You met the score and demonstrated the action and results an interview panel needs to hear.";
+      chip.textContent = "Strong evidence";
+      document.getElementById("statusTitle").textContent = "Strong evidence demonstrated.";
+      document.getElementById("statusMessage").textContent = "You met the score and showed the action and results a panel needs to hear.";
     } else {
       chip.classList.add("status-practice");
-      chip.textContent = "Rehearse again";
+      chip.textContent = "Revise and rehearse";
       document.getElementById("statusTitle").textContent = result.scorePassed ? "Close the evidence gaps." : "Strengthen the weakest proof.";
-      document.getElementById("statusMessage").textContent = result.scorePassed ? "Your score meets the standard, but action and result evidence must also be clear." : "Use your lowest-rated competency to focus the next practice round.";
+      document.getElementById("statusMessage").textContent = result.scorePassed ? "Your score meets the standard, but one required evidence gate is missing." : "Use the answer-level coaching to revise your evidence before another round.";
     }
-    document.getElementById("scoreGateIcon").textContent = result.scorePassed ? "✓" : "○";
-    document.getElementById("scoreGateText").textContent = result.complete ? `${result.score} points ${result.scorePassed ? "meets" : "does not meet"} the standard` : "80 points required";
-    document.getElementById("actionGateIcon").textContent = state.actionGate ? "✓" : "○";
-    document.getElementById("resultGateIcon").textContent = state.resultGate ? "✓" : "○";
+
+    const actionText = `${result.actionCount} of ${result.total} responses; ${result.actionRequired} required`;
+    const resultText = `${result.resultCount} of ${result.total} responses; ${result.resultRequired} required`;
+    document.getElementById("scoreGateIcon").textContent = revealed && result.scorePassed ? "✓" : "○";
+    document.getElementById("scoreGateText").textContent = revealed ? `${result.score} points ${result.scorePassed ? "meets" : "does not meet"} the standard` : "80 points required";
+    document.getElementById("actionGateIcon").textContent = revealed && result.actionGate ? "✓" : "○";
+    document.getElementById("actionGateText").textContent = revealed ? actionText : `${result.actionRequired} responses required`;
+    document.getElementById("resultGateIcon").textContent = revealed && result.resultGate ? "✓" : "○";
+    document.getElementById("resultGateText").textContent = revealed ? resultText : `${result.resultRequired} responses required`;
+    document.getElementById("actionGateIconDetail").textContent = revealed && result.actionGate ? "✓" : "○";
+    document.getElementById("actionGateDetail").textContent = revealed ? actionText : `Specific first-person actions must appear in at least ${result.actionRequired} responses.`;
+    document.getElementById("resultGateIconDetail").textContent = revealed && result.resultGate ? "✓" : "○";
+    document.getElementById("resultGateDetail").textContent = revealed ? resultText : `Measurable or observable outcomes must appear in at least ${result.resultRequired} responses.`;
+
+    const calibration = document.getElementById("calibrationResult");
+    calibration.hidden = guided || !revealed;
+    if (!calibration.hidden) {
+      const prediction = Number(state.prediction);
+      const gap = result.score - prediction;
+      document.getElementById("predictionValue").textContent = `${prediction}/100`;
+      document.getElementById("evidenceScoreValue").textContent = `${result.score}/100`;
+      document.getElementById("calibrationGap").textContent = gap > 0 ? `+${gap}` : String(gap);
+    }
+
     document.getElementById("evaluatorMessage").textContent = evaluatorFeedback(state);
     document.getElementById("evaluatorCard").classList.toggle("is-celebrating", result.ready);
     if (result.ready && !hasCelebrated) {
@@ -575,8 +739,8 @@
     }
   }
 
-  function weakestCompetencies() {
-    return rankedCompetencies(state.ratings, "asc")
+  function weakestCompetencies(currentState = state) {
+    return rankedCompetencies(analyzeInterview(currentState).criteria, "asc")
       .slice(0,2)
       .map((item) => item.name)
       .join("; ");
@@ -584,17 +748,22 @@
 
   function buildDebriefText() {
     const result = evaluateReadiness(state);
+    const observerLine = state.mode === "pressure" && state.observerEnabled
+      ? `Observer score: ${observerIsComplete() ? `${calculateScore(state.observerRatings)}/100` : "Incomplete"}${state.observerName ? ` (${state.observerName})` : ""}`
+      : null;
     return [
-      "AE Interview Lab — Readiness Debrief",
+      "AE Interview Lab — Evidence Challenge Debrief",
       `Candidate: ${state.name || "Candidate"}`,
       `Practice mode: ${modeInfo[state.mode].label}`,
-      `Readiness score: ${result.score}/100`,
-      `Personal action gate: ${state.actionGate ? "Met" : "Not met"}`,
-      `Meaningful results gate: ${state.resultGate ? "Met" : "Not met"}`,
+      state.mode === "guided" ? null : `Learner prediction: ${state.prediction == null ? "Not entered" : `${state.prediction}/100`}`,
+      `Evidence strength score: ${result.complete ? `${result.score}/100` : "Not analyzed"}`,
+      `Personal action gate: ${result.actionGate ? "Met" : "Not met"} (${result.actionCount}/${result.total})`,
+      `Meaningful results gate: ${result.resultGate ? "Met" : "Not met"} (${result.resultCount}/${result.total})`,
+      observerLine,
       `Responses completed: ${state.questionIds.filter((id) => responseHasEvidence(id)).length}/${state.questionIds.length}`,
-      `Lowest-rated evidence: ${weakestCompetencies() || "Complete the rubric"}`,
+      `Evidence to strengthen: ${weakestCompetencies() || "Run the evidence check"}`,
       `Next rehearsal focus: ${state.nextFocus || "Not entered"}`
-    ].join("\n");
+    ].filter(Boolean).join("\n");
   }
 
   async function copyDebrief() {
@@ -614,12 +783,12 @@
   }
 
   function resetAll() {
-    if (!window.confirm("Reset all interview responses, ratings, and local recordings?")) return;
+    if (!window.confirm("Reset all interview responses, evidence results, and local recordings?")) return;
     stopMainTimer();
     if (mediaRecorder && mediaRecorder.state === "recording") stopRecording();
     audioStore.forEach((item) => URL.revokeObjectURL(item.url));
     audioStore.clear();
-    state = Object.assign({}, defaultState, { questionIds: [], responses: {}, ratings: {} });
+    state = Object.assign({}, defaultState, { questionIds: [], responses: {}, observerRatings: {} });
     saveState();
     document.getElementById("learnerName").value = "";
     document.getElementById("focusSelect").value = "all";
@@ -642,8 +811,19 @@
     document.getElementById("retakeButton").addEventListener("click", retakeRecording);
     document.getElementById("previousQuestion").addEventListener("click", previousQuestion);
     document.getElementById("saveNext").addEventListener("click", saveAndContinue);
-    document.getElementById("actionGate").addEventListener("change", (event) => { state.actionGate = event.target.checked; saveState(); renderDebrief(); });
-    document.getElementById("resultGate").addEventListener("change", (event) => { state.resultGate = event.target.checked; saveState(); renderDebrief(); });
+    document.getElementById("predictionInput").addEventListener("input", (event) => {
+      const raw = event.target.value;
+      state.prediction = raw === "" ? null : Math.max(0, Math.min(100, Number(raw)));
+      state.analysisRevealed = false;
+      saveState();
+    });
+    document.getElementById("analyzeEvidence").addEventListener("click", analyzeEvidence);
+    document.getElementById("observerEnabled").addEventListener("change", (event) => {
+      state.observerEnabled = event.target.checked;
+      saveState();
+      renderDebrief();
+    });
+    document.getElementById("observerName").addEventListener("input", (event) => { state.observerName = event.target.value; saveState(); });
     document.getElementById("nextFocus").addEventListener("input", (event) => { state.nextFocus = event.target.value; saveState(); });
     document.getElementById("copyDebrief").addEventListener("click", copyDebrief);
     document.getElementById("printDebrief").addEventListener("click", () => window.print());
@@ -653,10 +833,10 @@
 
   function init() {
     selectMode("guided");
-    renderRubric();
     bindEvents();
+    renderDebrief();
   }
 
   if (typeof document !== "undefined") document.addEventListener("DOMContentLoaded", init);
-  if (typeof module !== "undefined" && module.exports) module.exports = { questions, rubric, modeInfo, selectQuestions, calculateScore, evaluateReadiness, evaluatorFeedback, formatTime, countWords };
+  if (typeof module !== "undefined" && module.exports) module.exports = { questions, rubric, modeInfo, selectQuestions, calculateScore, analyzeResponse, analyzeInterview, evaluateReadiness, evaluatorFeedback, formatTime, countWords };
 })();

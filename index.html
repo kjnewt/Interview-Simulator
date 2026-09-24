@@ -30,7 +30,7 @@
         <p>Practice translating what you have done as an SDR into clear, credible proof that you are ready to perform as an Account Executive.</p>
       </div>
       <div class="hero-standard">
-        <span>Readiness standard</span>
+        <span>Strong evidence standard</span>
         <strong>80% + evidence gates</strong>
         <small>Specific action and meaningful results are required.</small>
       </div>
@@ -57,21 +57,21 @@
           <span class="mode-step">Step 1</span>
           <span class="mode-label">Start here</span>
           <strong>Guided Practice</strong>
-          <small>3 questions · STAR+L coaching · Untimed</small>
+          <small>3 questions · STAR+L coaching · Evidence checker</small>
         </button>
         <button class="mode-card" type="button" role="radio" aria-checked="false" data-mode="panel">
           <span class="mode-icon" aria-hidden="true">02</span>
           <span class="mode-step">Step 2</span>
           <span class="mode-label">Next</span>
           <strong>Mock Panel</strong>
-          <small>6 questions · 30-sec prep · 2-min response</small>
+          <small>6 questions · Timed responses · Score calibration</small>
         </button>
         <button class="mode-card" type="button" role="radio" aria-checked="false" data-mode="pressure">
           <span class="mode-icon" aria-hidden="true">03</span>
           <span class="mode-step">Step 3</span>
           <span class="mode-label">Final</span>
           <strong>Pressure Round</strong>
-          <small>5 questions · 15-sec prep · 90-sec response</small>
+          <small>5 questions · Faster pace · Observer option</small>
         </button>
       </div>
 
@@ -180,7 +180,7 @@
                 <a class="secondary-button" id="downloadAudio" download>Download audio</a>
               </div>
             </div>
-            <p class="audio-note">Your browser may ask for microphone access. The recording stays on this device and is lost when this page closes unless you download it.</p>
+            <p class="audio-note">Your browser may ask for microphone access. The recording stays on this device and is lost when this page closes unless you download it. Add a brief typed version after recording if you want the Evidence Challenge to review this answer.</p>
           </div>
 
           <details class="coach-drawer" id="coachDrawer">
@@ -205,9 +205,9 @@
     <section class="tab-panel" id="panel-debrief" role="tabpanel" aria-labelledby="tab-debrief" hidden>
       <div class="section-intro debrief-intro">
         <div>
-          <p class="eyebrow">Readiness debrief</p>
+          <p class="eyebrow">Evidence Challenge</p>
           <h2>What evidence would the panel remember?</h2>
-          <p>Rate what was observable across the full interview—not what you intended to demonstrate.</p>
+          <p>Predict your performance, then compare it with observable evidence in your typed responses. The checker does not verify whether a story is true or replace live feedback.</p>
         </div>
         <div class="session-summary">
           <span><strong id="answeredCount">0</strong> responses</span>
@@ -218,33 +218,75 @@
 
       <div class="debrief-layout">
         <div>
-          <div class="rubric-list" id="rubricList"></div>
-          <div class="evidence-gates">
-            <p class="card-kicker">Required evidence gates</p>
-            <label><input id="actionGate" type="checkbox"><span><strong>Personal action was clear.</strong> My answers explained what I personally did—not only what “we” accomplished.</span></label>
-            <label><input id="resultGate" type="checkbox"><span><strong>Meaningful results were present.</strong> At least four responses included a measurable or observable outcome.</span></label>
+          <section class="calibration-card" id="calibrationCard">
+            <div>
+              <p class="card-kicker">Your prediction</p>
+              <h3>Before you see the evidence score, how strong was your interview?</h3>
+              <p>This prediction becomes a calibration point—it does not determine whether you pass.</p>
+            </div>
+            <label for="predictionInput">Predicted score
+              <span class="prediction-input"><input id="predictionInput" type="number" min="0" max="100" inputmode="numeric" placeholder="0–100"><b>/ 100</b></span>
+            </label>
+          </section>
+
+          <div class="analysis-note">
+            <strong>What the checker can assess</strong>
+            <p>It looks for a clear example, specific first-person actions, AE-level business judgment, meaningful outcomes, reflection, and focused delivery. Everything remains in this browser.</p>
           </div>
+
+          <div class="rubric-list" id="rubricList"></div>
+
+          <section class="response-evidence" aria-labelledby="responseEvidenceTitle">
+            <div class="rubric-head">
+              <div><h3 id="responseEvidenceTitle">Answer-by-answer evidence</h3><p>Use the coaching notes to revise the proof a panel would hear.</p></div>
+            </div>
+            <div class="response-evidence-list" id="responseEvidenceList"></div>
+          </section>
+
+          <div class="evidence-gates">
+            <p class="card-kicker">Automatically measured evidence gates</p>
+            <div class="automatic-gate"><i id="actionGateIconDetail" aria-hidden="true">○</i><span><strong>Personal action</strong><small id="actionGateDetail">Specific first-person actions must appear across the interview.</small></span></div>
+            <div class="automatic-gate"><i id="resultGateIconDetail" aria-hidden="true">○</i><span><strong>Meaningful results</strong><small id="resultGateDetail">Measurable or observable outcomes must appear across the interview.</small></span></div>
+          </div>
+
+          <section class="observer-card" id="observerCard" hidden>
+            <label class="observer-toggle"><input id="observerEnabled" type="checkbox"><span><strong>Add observer validation</strong><small>For Pressure Round, a manager, mentor, or peer can independently score the same rubric.</small></span></label>
+            <div id="observerFields" hidden>
+              <label for="observerName">Observer name or initials <span>optional</span></label>
+              <input id="observerName" type="text" maxlength="60" placeholder="Observer">
+              <div class="observer-rubric" id="observerRubric"></div>
+              <div class="observer-score"><span>Observer score</span><strong id="observerScore">—</strong><small>/ 100</small></div>
+            </div>
+          </section>
         </div>
 
         <aside class="result-card">
-          <div class="score-ring" id="scoreRing"><div><strong id="scoreValue">0</strong><span>/ 100</span></div></div>
-          <span class="status-chip status-incomplete" id="statusChip">Rubric incomplete</span>
-          <h3 id="statusTitle">Finish the evidence review.</h3>
-          <p id="statusMessage">Rate every competency and confirm both evidence gates.</p>
+          <div class="score-ring" id="scoreRing"><div><strong id="scoreValue">—</strong><span>/ 100</span></div></div>
+          <span class="status-chip status-incomplete" id="statusChip">Not analyzed</span>
+          <h3 id="statusTitle" tabindex="-1">Run your evidence check.</h3>
+          <p id="statusMessage">The score will come from observable evidence—not the score you predicted.</p>
 
           <div class="evaluator-card" id="evaluatorCard" aria-live="polite">
             <span class="evaluator-avatar" aria-hidden="true">S</span>
             <div>
-              <span>Sparky · Readiness Evaluator</span>
-              <p id="evaluatorMessage">Complete the evidence review and I’ll help you identify what the panel is likely to remember.</p>
+              <span>Sparky · Evidence Coach</span>
+              <p id="evaluatorMessage">Run the evidence check and I’ll show you what the panel could clearly observe.</p>
             </div>
           </div>
 
           <div class="gate-list">
             <div><i id="scoreGateIcon" aria-hidden="true">○</i><span><strong>Score gate</strong><small id="scoreGateText">80 points required</small></span></div>
-            <div><i id="actionGateIcon" aria-hidden="true">○</i><span><strong>Action gate</strong><small>Specific personal actions</small></span></div>
-            <div><i id="resultGateIcon" aria-hidden="true">○</i><span><strong>Result gate</strong><small>Meaningful outcomes</small></span></div>
+            <div><i id="actionGateIcon" aria-hidden="true">○</i><span><strong>Action gate</strong><small id="actionGateText">Specific personal actions</small></span></div>
+            <div><i id="resultGateIcon" aria-hidden="true">○</i><span><strong>Result gate</strong><small id="resultGateText">Meaningful outcomes</small></span></div>
           </div>
+
+          <div class="calibration-result" id="calibrationResult" hidden>
+            <span>Your prediction <strong id="predictionValue">—</strong></span>
+            <span>Evidence score <strong id="evidenceScoreValue">—</strong></span>
+            <span>Calibration gap <strong id="calibrationGap">—</strong></span>
+          </div>
+
+          <button class="primary-button wide" id="analyzeEvidence" type="button">Analyze my evidence</button>
 
           <label for="nextFocus">My next rehearsal focus</label>
           <textarea id="nextFocus" rows="4" placeholder="Name the one behavior that would most improve your next interview."></textarea>
